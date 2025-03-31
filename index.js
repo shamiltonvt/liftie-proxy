@@ -1,12 +1,15 @@
 let cachedData = null;
-let lastFetch = 0;
-const cacheDuration = 10 * 60 * 1000; // 10 minutes
+let lastFetched = 0;
+const CACHE_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
 
 export default async function handler(req, res) {
-  const now = Date.now();
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-  if (cachedData && now - lastFetch < cacheDuration) {
-    console.log("Serving cached data");
+  const now = Date.now();
+  if (cachedData && (now - lastFetched < CACHE_INTERVAL)) {
+    console.log("✅ Returning cached lift status");
     res.setHeader("Access-Control-Allow-Origin", "*");
     return res.status(200).json(cachedData);
   }
@@ -24,10 +27,10 @@ export default async function handler(req, res) {
 
     const data = await response.json();
     cachedData = data;
-    lastFetch = now;
+    lastFetched = now;
 
     res.setHeader("Access-Control-Allow-Origin", "*");
-    return res.status(200).json(data);
+    res.status(200).json(data);
   } catch (error) {
     console.error("Proxy error:", error);
     res.status(500).json({ error: "Unable to fetch lift status" });
